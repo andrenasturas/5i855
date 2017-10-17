@@ -39,11 +39,12 @@ class PorterStemmer(TextRepresenter):
     def getTextRepresentation(self,text):
         tab=re.findall(r"\w+",text,re.UNICODE)
 
-        tab=[i.lower() for i in tab]
+        tab=[porter.stem(word.lower()) for word in tab]
+        tab=[word for word in tab if word not in self.stopWords]
 
         ret=Counter(tab)
 
-        ret={porter.stem(a):b for (a,b) in ret.items()  if a not in self.stopWords}
+        ret={a: b for (a, b) in ret.items()}
         return ret
 
 
