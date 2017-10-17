@@ -8,7 +8,7 @@ Created on 5 sept. 2016
 
 import re
 from collections import Counter
-from RI.indexation import porter
+import porter
 
 
 class TextRepresenter(object):
@@ -21,32 +21,32 @@ class TextRepresenter(object):
         '''
         Constructor
         '''
-        
+
     def getTextRepresentation(self,text):
         raise NotImplementedError
-    
+
 
 
 class PorterStemmer(TextRepresenter):
-    
+
     def __init__(self):
         '''
         Constructor
         '''
         self.stopWords=set()
         self._setStopWords()
-        
+
     def getTextRepresentation(self,text):
         tab=re.findall(r"\w+",text,re.UNICODE)
-        
+
         tab=[i.lower() for i in tab]
-        
+
         ret=Counter(tab)
-        
+
         ret={porter.stem(a):b for (a,b) in ret.items()  if a not in self.stopWords}
         return ret
-    
-        
+
+
     def _setStopWords(self):
         self.stopWords.add("a");
         self.stopWords.add("able");
@@ -610,5 +610,5 @@ class PorterStemmer(TextRepresenter):
         self.stopWords.add("gt");
         self.stopWords.add("section");
         self.stopWords.add("cx");
-   
+
 

@@ -69,7 +69,7 @@ class Parser(object):
                         read=True
                         start=curOff                      
                 if(read):
-                    st+=(ligne)
+                    st+=(ligne.decode())
                 if((len(self.end)>0) and (ligne.startswith(self.end))):
                     read=False
                     ok=True;

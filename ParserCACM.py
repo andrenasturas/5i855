@@ -27,7 +27,7 @@ class ParserCACM(Parser):
         '''
         Constructor
         '''
-        Parser.__init__(self,".I")
+        Parser.__init__(self,bytes(".I", "utf-8"))
 
     def getDocument(self,text):
         other={};
