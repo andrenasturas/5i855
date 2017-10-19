@@ -1,5 +1,15 @@
 # coding: utf-8
 
+import time
+import logging
+log = logging.getLogger()
+log.setLevel(logging.DEBUG)
+log_format = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.DEBUG)
+log.addHandler(stream_handler)
+
+
 
 class Index(object):
     """
@@ -8,7 +18,7 @@ class Index(object):
         Objet construisant et conservant les index et index inversé d'un corpus textuel.
     """
 
-    def __init__(self, name, parser, textRepresenter):
+    def __init__(self, name, parser, textRepresenter, source):
         """
             Initialise un objet Index
 
@@ -26,6 +36,7 @@ class Index(object):
         self.docFrom = {}
         self.parser = parser
         self.textRep = textRepresenter
+        self.source = source
 
     def writeDict(self, dic):
         """
@@ -34,7 +45,7 @@ class Index(object):
             Cette fonction est utilisée lors de la sauvegarde sur disque d'un
             dictionnaire. Il est aussi possible d'écrire le dictionnaire
             directement, et de le lire ensuite à l'aide de la fonction native
-            eval(), de sa version sécurisée ast.literal_eval(), ou en parsant
+            eval, de sa version sécurisée ast.literal_eval, ou en parsant
             le dictionnaire à l'aide du paquet json, ou encore en utilisant
             la sérialisation pickle.
 
@@ -73,8 +84,12 @@ class Index(object):
             Effectue l'indexation du corpus
         """
 
+        log.info("Début de l'indexation")
+
         self.indexDirect()
         self.indexInversed()
+
+        log.info("Indexation terminée")
 
 
     def indexDirect(self):
@@ -82,19 +97,32 @@ class Index(object):
             Effectue l'indexation normale du corpus
         """
 
+        log.info("Début de l'indexation normale")
+        log_start = time.time()
+
         with open("./" + self.name + "_index", "wb") as ifile:
             ifcur = 0
 
             # Pour chaque document
+            self.parser.initFile(self.source)
             d = self.parser.nextDocument()
             while (d):
+
                 # Lecture document
                 id = d.getId()
-                st = self.textRep.getTextRepresentation(d.getText().encode())
+                st = self.textRep.getTextRepresentation(d.getText())
+
+                log.debug("Document " + id)
 
                 # Écriture index
                 ifile.write(self.writeDict(st))
+
+                ifile.seek(-1, 1)  # suppression dernier point-virgule
+
                 nfcur = ifile.tell()
+
+                ifile.write("\n".encode())
+
                 self.docs[id] = (ifcur, nfcur - ifcur)
 
                 # Écriture table DocFrom
@@ -109,10 +137,16 @@ class Index(object):
                 ifcur = nfcur
                 d = self.parser.nextDocument()
 
+        log.info("Indexation normale terminée en " + str(time.time() - log_start) + " secondes.")
+        log.info(str(len(self.docFrom)) + " documents et " + str(len(self.stems)) + " mots ont été indexés.")
+
     def indexInversed(self):
         """
             Indexation inversée
         """
+
+        log.info("Début de l'indexation inversée")
+        log_start = time.time()
 
         with open("./" + self.name + "_inverted", "wb") as ifile:
             ifcur = 0
@@ -120,25 +154,32 @@ class Index(object):
             for s in self.stems:
 
                 # Pour chaque document
+                self.parser.initFile(self.source)
                 d = self.parser.nextDocument()
-                while(d):
-                    st = self.textRep.getTextRepresentation(d.getText().encode())
 
-                    c = t.count(s)
-                    if c > 0:
-                        ifile.write(d.getId() + ":" + c + ";")
+                while(d):
+                    st = self.textRep.getTextRepresentation(d.getText())
+
+                    # Ecriture doc-tf
+                    try:
+                        w = d.getId() + ":" + str(st[s]) + ";"
+                        ifile.write(w.encode())
+                    except KeyError:
+                        pass
 
                     # Itération
-                    d = p.nextDocument()
+                    d = self.parser.nextDocument()
 
                 # Écriture index
                 ifile.seek(-1, 1)   # suppression dernier point-virgule
                 nfcur = ifile.tell()
-                ifile.write("\n")
+                ifile.write("\n".encode())
                 self.stems[s] = (ifcur, nfcur-ifcur)
 
                 # Itération
                 ifcur = nfcur
+
+        log.info("Indexation normale terminée en " + str(time.time() - log_start) + " secondes.")
 
     def getTfsForDoc(self, doc):
         """
