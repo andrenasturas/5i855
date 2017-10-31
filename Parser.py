@@ -88,7 +88,16 @@ class Parser(object):
             
     def getDocument(self,text):
         raise NotImplementedError
-    
+
+
+    def countDocument(self):
+        """
+            Retourne le nombre de documents à parser
+        """
+        lines = self.file.readlines()
+        self.file.seek(0)
+        return len([1 for row in lines if row.startswith(self.begin)])
+
 
 
 
