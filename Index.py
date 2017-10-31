@@ -18,16 +18,20 @@ class Index(object):
         Objet construisant et conservant les index et index inversé d'un corpus textuel.
     """
 
-    def __init__(self, name, parser, textRepresenter, source):
+    def __init__(self, name, parser, textRepresenter, source, keep_alive=False):
         """
             Initialise un objet Index
 
             :param name: Nom de l'index
             :param parser: Parseur à utiliser
             :param textRepresenter: Représentation du corpus
+            :param source: Corpus à indexer
+            :param keep_alive: Indique s'il faut conserver l'index en mémoire vive
             :type name: str
             :type parser: Parser
             :type textRep: TextRepresenter
+            :type source: str
+            :type keep_alive: bool
         """
 
         self.name = name
@@ -37,6 +41,10 @@ class Index(object):
         self.parser = parser
         self.textRep = textRepresenter
         self.source = source
+        self.keep_alive = keep_alive
+
+        if self.keep_alive:
+            self.index = {}
 
     def writeDict(self, dic):
         """
@@ -117,11 +125,12 @@ class Index(object):
                 # Écriture index
                 ifile.write(self.writeDict(st))
 
-                ifile.seek(-1, 1)  # suppression dernier point-virgule
-
-                nfcur = ifile.tell()
+                if self.keep_alive:
+                    self.index[id] = st
 
                 ifile.write("\n".encode())
+
+                nfcur = ifile.tell()
 
                 self.docs[id] = (ifcur, nfcur - ifcur)
 
@@ -145,8 +154,8 @@ class Index(object):
             Indexation inversée
         """
 
-        log.info("Début de l'indexation inversée")
-        log_start = time.time()
+        with open("./" + self.name + "_index", "rb") as wfile:
+            with open("./" + self.name + "_inverted", "wb") as ifile:
 
         with open("./" + self.name + "_inverted", "wb") as ifile:
             ifcur = 0
@@ -157,8 +166,11 @@ class Index(object):
                 self.parser.initFile(self.source)
                 d = self.parser.nextDocument()
 
-                while(d):
-                    st = self.textRep.getTextRepresentation(d.getText())
+                    if self.keep_alive:
+                        st = self.index[d]
+                    else:
+                        wfile.seek(o)
+                        st = self.readDict(wfile.read(r))
 
                     # Ecriture doc-tf
                     try:
