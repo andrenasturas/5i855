@@ -6,9 +6,10 @@ log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 log_format = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
 stream_handler = logging.StreamHandler()
+stream_handler.terminator = ""
 stream_handler.setLevel(logging.DEBUG)
 log.addHandler(stream_handler)
-
+log.info("\033[?25l")
 
 
 class Index(object):
@@ -92,12 +93,14 @@ class Index(object):
             Effectue l'indexation du corpus
         """
 
-        log.info("Début de l'indexation")
+        log.info("Création de l'index " + self.name + "\n\n")
+        log_start = time.time()
 
         self.indexDirect()
         self.indexInversed()
 
-        log.info("Indexation terminée")
+        log.info("\nIndex créé en " + str(time.time() - log_start) + " secondes.\n")
+        log.info(str(len(self.docFrom)) + " documents et " + str(len(self.stems)) + " mots ont été indexés.\n")
 
 
     def indexDirect(self):
@@ -105,22 +108,27 @@ class Index(object):
             Effectue l'indexation normale du corpus
         """
 
-        log.info("Début de l'indexation normale")
-        log_start = time.time()
-
         with open("./" + self.name + "_index", "wb") as ifile:
             ifcur = 0
 
             # Pour chaque document
             self.parser.initFile(self.source)
             d = self.parser.nextDocument()
+
+            log_size = self.parser.countDocument()
+            log_accu = 0
+
+            log.debug("Document : ")
+
             while (d):
 
                 # Lecture document
                 id = d.getId()
                 st = self.textRep.getTextRepresentation(d.getText())
 
-                log.debug("Document " + id)
+                log_accu += 1
+                log_perc = log_accu/log_size
+                log.info("\rIndexation normale [" + "█"*int(50*log_perc) + " "*(50-int(50*log_perc)) + "] " + str(int(100*log_perc)) + "%")
 
                 # Écriture index
                 ifile.write(self.writeDict(st))
@@ -146,8 +154,7 @@ class Index(object):
                 ifcur = nfcur
                 d = self.parser.nextDocument()
 
-        log.info("Indexation normale terminée en " + str(time.time() - log_start) + " secondes.")
-        log.info(str(len(self.docFrom)) + " documents et " + str(len(self.stems)) + " mots ont été indexés.")
+            log.info("\b" * 4 + "\033[1;32mTerminé\033[0m\n")
 
     def indexInversed(self):
         """
@@ -160,11 +167,13 @@ class Index(object):
         with open("./" + self.name + "_inverted", "wb") as ifile:
             ifcur = 0
 
-            for s in self.stems:
+                log_size = len(self.docs)
+                log_accu = 0
 
-                # Pour chaque document
-                self.parser.initFile(self.source)
-                d = self.parser.nextDocument()
+                for d, (o, r) in self.docs.items():
+                    log_accu+= 1
+                    per = log_accu/log_size
+                    log.info("\rIndexation inverse [" + "█"*int(50*per) + " "*(50-int(50*per)) + "] " + str(int(100*per)) + "%")
 
                     if self.keep_alive:
                         st = self.index[d]
@@ -191,7 +200,7 @@ class Index(object):
                 # Itération
                 ifcur = nfcur
 
-        log.info("Indexation normale terminée en " + str(time.time() - log_start) + " secondes.")
+                log.info("\b" * 4 + "\033[1;32mTerminé\033[0m\n")
 
     def getTfsForDoc(self, doc):
         """
