@@ -9,7 +9,7 @@ class Parser(object):
     '''
     classdocs
     '''
-    
+
 
     def __init__(self, begin, end=""):
         '''
@@ -18,18 +18,18 @@ class Parser(object):
         self.begin=begin
         self.end=end
         self.file=None
-        
-        
+
+
     def initFile(self,filename):
         self.file=open(filename,"rb")
-        
-        
+
+
     def __del__(self):
         if(self.file is not None):
             #print self.file.closed
             self.file.close()
             #print str(self.file.closed)
-    
+
     def nextDocument(self):
         #if((self.file is None) or (self.file.closed())):
         #    return None
@@ -40,15 +40,15 @@ class Parser(object):
             st=""
             read=False;
             start=0;
-            nbBytes=0;       
+            nbBytes=0;
             while(True):
                 curOff=self.file.tell();
-               
+
                 ligne=self.file.readline();
                 #self.file.seek(curOff,0)
                 #print ligne
-               
-                
+
+
                 if(len(ligne)==0):
                     if((len(self.end)==0) and read):
                         #print ok
@@ -61,13 +61,13 @@ class Parser(object):
                         nbBytes=curOff-start;
                         read=False;
                         ok=True;
-                        
+
                         self.file.seek(curOff)
-                        
+
                         break;
                     else:
                         read=True
-                        start=curOff                      
+                        start=curOff
                 if(read):
                     st+=(ligne.decode())
                 if((len(self.end)>0) and (ligne.startswith(self.end))):
@@ -83,9 +83,9 @@ class Parser(object):
             else:
                 self.file.close();
                 return None
-                
+
         return d
-            
+
     def getDocument(self,text):
         raise NotImplementedError
 

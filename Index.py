@@ -97,6 +97,7 @@ class Index(object):
         log_start = time.time()
 
         self.indexDirect()
+        self.prepareInversed()
         self.indexInversed()
 
         log.info("\nIndex créé en " + str(time.time() - log_start) + " secondes.\n")
@@ -148,13 +149,29 @@ class Index(object):
 
                 # Initialisation stems
                 for s in st:
-                    self.stems[s] = None
+                    if s in self.stems.keys():
+                        self.stems[s] = (-1, self.stems[s][1] + len(id) + len(str(st[s])) + 2)
+                    else:
+                        self.stems[s] = (-1, len(id) + len(str(st[s])) + 3)
 
                 # Itération
                 ifcur = nfcur
                 d = self.parser.nextDocument()
 
             log.info("\b" * 4 + "\033[1;32mTerminé\033[0m\n")
+
+
+
+    def prepareInversed(self):
+        """
+            Prépare l'indexation inversée
+        """
+
+        offset = 0
+        for k, (o, l) in self.stems.items():
+            self.stems[k] = (offset, l)
+            offset+= l + len(k) + 1
+
 
     def indexInversed(self):
         """
@@ -164,8 +181,7 @@ class Index(object):
         with open("./" + self.name + "_index", "rb") as wfile:
             with open("./" + self.name + "_inverted", "wb") as ifile:
 
-        with open("./" + self.name + "_inverted", "wb") as ifile:
-            ifcur = 0
+                offset = dict.fromkeys(self.stems, 0)
 
                 log_size = len(self.docs)
                 log_accu = 0
@@ -182,23 +198,11 @@ class Index(object):
                         st = self.readDict(wfile.read(r))
 
                     # Ecriture doc-tf
-                    try:
-                        w = d.getId() + ":" + str(st[s]) + ";"
+                    for s in st:
+                        w = d + ':' + s + ';'
+                        ifile.seek(self.stems[s][0] + offset[s])
+                        offset[s] += len(w)
                         ifile.write(w.encode())
-                    except KeyError:
-                        pass
-
-                    # Itération
-                    d = self.parser.nextDocument()
-
-                # Écriture index
-                ifile.seek(-1, 1)   # suppression dernier point-virgule
-                nfcur = ifile.tell()
-                ifile.write("\n".encode())
-                self.stems[s] = (ifcur, nfcur-ifcur)
-
-                # Itération
-                ifcur = nfcur
 
                 log.info("\b" * 4 + "\033[1;32mTerminé\033[0m\n")
 
@@ -221,7 +225,7 @@ class Index(object):
 
     def getTfsForStem(self, stem):
         """
-            Retourne la représentation doc-tf d'un document depuis l'index
+            Retourne la représentation doc-tf d'un stem depuis l'index
 
             Pour un stem déjà indexé donné, retourne un dictionnaire contenant
             l'identifiant de tous les documents dans lequel il apparait,
